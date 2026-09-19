@@ -53,7 +53,9 @@ DISABLED_FILE = CONFIG_DIR / "DISABLED"
 CLIENT_ID = os.environ.get("KAIROS_CLIENT_ID", "")
 TENANT_ID = os.environ.get("KAIROS_TENANT_ID", "organizations")
 AUTHORITY = f"https://login.microsoftonline.com/{TENANT_ID}"
-SCOPES = ["Tasks.ReadWrite"]
+# Fully qualified: the /organizations authority rejects bare scope names
+# (AADSTS50059). A tenant-specific authority accepts either form.
+SCOPES = ["https://graph.microsoft.com/Tasks.ReadWrite"]
 
 # Plan used when a tool is called without one. Blank = must be given, unless
 # the account has exactly one plan.

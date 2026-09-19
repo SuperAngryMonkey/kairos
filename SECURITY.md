@@ -64,7 +64,7 @@ consent screen.** Judge it accordingly.
 ## Verifying the claims
 
 ```bash
-grep -n 'SCOPES' server.py          # one scope, Tasks.ReadWrite
+grep -n "SCOPES = " server.py      # one scope, Tasks.ReadWrite
 grep -n '"DELETE"' server.py        # no matches — no delete call exists
 grep -n '@mcp.tool' server.py       # eight tools, listed in the README
 ```
