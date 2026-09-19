@@ -72,7 +72,8 @@ step("complete alpha again by id", server.complete_planner_task(task_id=t1["task
 for t in json.loads(server.list_planner_tasks(plan=plan, bucket=BUCKET))["tasks"]:
     step(f"complete leftover {t['title'][-3:]}", server.complete_planner_task(task_id=t["task_id"]), '"completed": true')
 
-step("list include_completed", server.list_planner_tasks(plan=plan, bucket=BUCKET, include_completed=True), '"count": 3')
+done = json.loads(step("list include_completed", server.list_planner_tasks(plan=plan, bucket=BUCKET, include_completed=True), '"tasks"'))
+step("this run's 3 tasks all completed", str(sum(1 for t in done["tasks"] if STAMP in t["title"] and t["percent_complete"] == 100)), "3")
 step("bad date rejected", server.create_planner_task("x", plan=plan, due_on="12/31/2026"), "YYYY-MM-DD")
 step("unknown bucket lists options", server.create_planner_task("x", plan=plan, bucket="no-such-bucket"), "no bucket named")
 
