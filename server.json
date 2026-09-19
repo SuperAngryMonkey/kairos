@@ -1,0 +1,48 @@
+{
+  "$schema": "https://static.modelcontextprotocol.io/schemas/2025-12-11/server.schema.json",
+  "name": "io.github.SuperAngryMonkey/kairos",
+  "description": "Microsoft Planner MCP: create tasks and buckets, list plans and tasks, complete tasks. Tasks.ReadWrite only.",
+  "status": "active",
+  "repository": {
+    "url": "https://github.com/SuperAngryMonkey/kairos",
+    "source": "github"
+  },
+  "version": "0.1.0",
+  "packages": [
+    {
+      "registryType": "pypi",
+      "registryBaseUrl": "https://pypi.org",
+      "identifier": "kairos-mcp",
+      "version": "0.1.0",
+      "transport": {
+        "type": "stdio"
+      },
+      "environmentVariables": [
+        {
+          "name": "KAIROS_CLIENT_ID",
+          "description": "Application (client) ID of YOUR OWN Entra app registration with delegated Tasks.ReadWrite. There is no shared app; you register one.",
+          "isRequired": true,
+          "isSecret": false
+        },
+        {
+          "name": "KAIROS_TENANT_ID",
+          "description": "Directory (tenant) ID. Defaults to 'organizations'.",
+          "isRequired": false,
+          "isSecret": false
+        },
+        {
+          "name": "KAIROS_DEFAULT_PLAN",
+          "description": "Plan name used when a tool is called without one. If unset and you have more than one plan, plan= is required.",
+          "isRequired": false,
+          "isSecret": false
+        },
+        {
+          "name": "KAIROS_CONFIG_DIR",
+          "description": "Where the token cache, audit log and kill-switch file live. Defaults to ~/.config/kairos.",
+          "isRequired": false,
+          "isSecret": false
+        }
+      ]
+    }
+  ]
+}
