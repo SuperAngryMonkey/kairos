@@ -18,6 +18,9 @@ class FakeGraph:
 
     def __init__(self):
         self.plans = {"P1": "Development", "P2": "Master"}
+        # Group-owned plans: /me/planner/plans omits these (observed in the
+        # wild), so discovery has to reach them via /me/memberOf -> group plans.
+        self.groups = {}         # group id -> {plan id: title}
         self.buckets = {"B1": ("P1", "argus"), "B2": ("P1", "To do"), "B3": ("P2", "Inbox")}
         self.tasks = {}          # id -> dict
         self.details = {}        # id -> {"description":..., "etag":...}
@@ -30,6 +33,11 @@ class FakeGraph:
         hdr = kw.get("headers") or {}
         if path.startswith("/me/planner/plans"):
             return {"value": [{"id": k, "title": v} for k, v in self.plans.items()]}, 200, {}
+        if path.startswith("/me/memberOf"):
+            return {"value": [{"id": gid} for gid in self.groups]}, 200, {}
+        if path.startswith("/groups/") and path.endswith("/planner/plans?$select=id,title"):
+            gid = path.split("/")[2]
+            return {"value": [{"id": k, "title": v} for k, v in self.groups.get(gid, {}).items()]}, 200, {}
         if path.startswith("/planner/plans/") and "/buckets" in path:
             pid = path.split("/")[3]
             return {"value": [{"id": k, "name": n} for k, (p, n) in self.buckets.items() if p == pid]}, 200, {}
@@ -87,6 +95,17 @@ def test_list_plans(g):
     out = json.loads(server.list_planner_plans())
     assert [p["plan_name"] for p in out["plans"]] == ["Development", "Master"]
     assert out["plans"][0]["buckets"][0]["bucket_name"] == "argus"
+
+
+def test_list_plans_includes_group_owned(g):
+    # A plan that only shows up through group membership must still be listed,
+    # and one that appears in both places must not be listed twice.
+    g.groups["G1"] = {"P3": "EHP", "P1": "Development"}
+    g.buckets["B4"] = ("P3", "sobek")
+    server._invalidate_plans()
+    out = json.loads(server.list_planner_plans())
+    assert [p["plan_name"] for p in out["plans"]] == ["Development", "Master", "EHP"]
+    assert out["plans"][2]["buckets"][0]["bucket_name"] == "sobek"
 
 
 def test_plan_required_when_ambiguous(g):
