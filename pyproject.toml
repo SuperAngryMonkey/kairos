@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "kairos-mcp"
-version = "0.1.0"
+version = "0.1.1"
 description = "A Microsoft Planner MCP server that writes tasks: create tasks and buckets, list plans and tasks, complete tasks. Delegated device-code auth, Tasks.ReadWrite only."
 readme = "README.md"
 requires-python = ">=3.10"

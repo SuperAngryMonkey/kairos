@@ -42,7 +42,7 @@ import msal
 import requests
 from mcp.server.fastmcp import FastMCP
 
-__version__ = "0.1.0"
+__version__ = "0.1.1"
 
 CONFIG_DIR = Path(os.environ.get("KAIROS_CONFIG_DIR", Path.home() / ".config" / "kairos"))
 CACHE_FILE = Path(os.environ.get("KAIROS_TOKEN_CACHE", CONFIG_DIR / "token_cache.json"))
@@ -230,11 +230,43 @@ def _paged(path: str, token: str) -> tuple[list, str | None]:
 _plans_cache: dict = {"at": 0.0, "plans": []}
 
 
+def _all_plans(token: str) -> tuple[list, str | None]:
+    """Every plan the signed-in user can see, as [{id, title}].
+
+    /me/planner/plans reliably returns the user's own (roster) plans but has been
+    observed to omit group-owned plans for days after they are created -- a
+    board shared with a Microsoft 365 group simply never showed up. So also walk
+    the user's group memberships and union in each group's plans. With only
+    Tasks.ReadWrite + User.Read, memberOf returns ids and nothing else, which is
+    all this needs. A failure on the group side degrades to the roster list
+    rather than failing the call.
+    """
+    raw, err = _paged("/me/planner/plans?$select=id,title", token)
+    if err:
+        return [], err
+    seen = {p["id"] for p in raw}
+    groups, gerr = _paged("/me/memberOf/microsoft.graph.group?$select=id", token)
+    if not gerr:
+        for g in groups:
+            gid = g.get("id")
+            if not gid:
+                continue
+            gp, perr = _paged(f"/groups/{gid}/planner/plans?$select=id,title", token)
+            if perr:
+                continue
+            for p in gp:
+                if p["id"] not in seen:
+                    seen.add(p["id"])
+                    raw.append(p)
+            time.sleep(CALL_GAP)
+    return raw, None
+
+
 def _load_plans(token: str, force: bool = False) -> tuple[list, str | None]:
     """[{plan_id, plan_name, buckets: [{bucket_id, bucket_name}]}] with a TTL cache."""
     if not force and _plans_cache["plans"] and time.time() - _plans_cache["at"] < PLAN_CACHE_TTL:
         return _plans_cache["plans"], None
-    raw, err = _paged("/me/planner/plans?$select=id,title", token)
+    raw, err = _all_plans(token)
     if err:
         return [], err
     plans = []
@@ -422,11 +454,12 @@ def kairos_auth_status() -> str:
     if err:
         return err
     body, code, _ = _graph("GET", "/me/planner/plans?$select=id", token)
+    visible, _verr = _all_plans(token) if code == 200 else ([], None)
     return json.dumps({
         "signed_in_as": accounts[0].get("username"),
         "scopes": SCOPES,
         "graph_ok": code == 200,
-        "plans_visible": len(body.get("value", [])) if code == 200 else None,
+        "plans_visible": len(visible) if code == 200 else None,
         "default_plan": DEFAULT_PLAN or "(none — plan must be given unless you have exactly one)",
         "token_cache": str(CACHE_FILE),
         "version": __version__,

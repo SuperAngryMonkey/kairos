@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.1.1 — 2026-09-27
+
+- Fix: plans owned by a Microsoft 365 group were invisible. `/me/planner/plans`
+  has been observed to omit group-owned plans for days after creation, so plan
+  discovery now also walks `/me/memberOf` and unions in each group's plans.
+  No new scopes needed. `kairos_auth_status.plans_visible` reflects the union.
+
 ## 0.1.0 — 2026-09-19
 
 Initial release.
